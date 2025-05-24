@@ -1,0 +1,1347 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SawanCare</title>
+    <link href="https://cdn.jsdelivr.net/npm/@ionic/core/css/ionic.bundle.css" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.0/dist/chart.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        /* Custom styles for the app */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8f8f8; /* Light background */
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden; /* Prevent horizontal scroll */
+        }
+        /* Ensure Ionic components use Inter font */
+        ion-content {
+            --background: #f8f8f8;
+            --padding-top: 16px;
+            --padding-bottom: 16px;
+            --padding-start: 16px;
+            --padding-end: 16px;
+        }
+        ion-toolbar {
+            --background: #ffffff;
+            --color: #333;
+        }
+        ion-button {
+            --border-radius: 12px;
+            --padding-start: 20px;
+            --padding-end: 20px;
+            text-transform: none; /* Prevent uppercase transformation */
+        }
+        ion-card {
+            border-radius: 12px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+            margin-bottom: 1rem; /* Add some space below cards */
+        }
+        ion-item {
+            --border-radius: 8px;
+            --background: #ffffff;
+            margin-bottom: 8px;
+            --padding-start: 12px; /* Adjust padding for better look */
+            --padding-end: 12px;
+            --min-height: 48px; /* Ensure consistent height for list items */
+        }
+        ion-input, ion-textarea, ion-select, ion-datetime {
+            --padding-start: 12px;
+            --padding-end: 12px;
+            --padding-top: 10px;
+            --padding-bottom: 10px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            margin-top: 4px;
+            margin-bottom: 4px;
+            width: 100%; /* Ensure inputs take full width */
+        }
+        /* Dark mode styles */
+        html.dark {
+            --ion-background-color: #1a1a1a;
+            --ion-text-color: #f8f8f8;
+            --ion-toolbar-background: #2a2a2a;
+            --ion-toolbar-color: #f8f8f8;
+            --ion-card-background: #2a2a2a;
+            --ion-item-background: #2a2a2a;
+            color: #f8f8f8;
+        }
+        html.dark ion-input, html.dark ion-textarea, html.dark ion-select, html.dark ion-datetime {
+            border: 1px solid #444;
+            --color: #f8f8f8;
+            --placeholder-color: #bbb;
+        }
+        .page {
+            width: 100%;
+            max-width: 600px; /* Max width for content on larger screens */
+            margin: 0 auto; /* Center content */
+        }
+        .hidden {
+            display: none;
+        }
+        /* Style for the custom message box */
+        .message-box {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #333;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
+            font-size: 0.9rem;
+            text-align: center;
+            min-width: 200px;
+        }
+        .message-box.show {
+            opacity: 1;
+        }
+        .message-box.info { background-color: #3880ff; } /* Ionic blue */
+        .message-box.success { background-color: #2dd36f; } /* Ionic green */
+        .message-box.error { background-color: #eb445a; } /* Ionic red */
+
+        /* Specific styles for ion-select to ensure label is always visible */
+        ion-select {
+            --padding-top: 10px;
+            --padding-bottom: 10px;
+        }
+        ion-label[position="stacked"] {
+            padding-bottom: 5px; /* Adjust spacing for stacked labels */
+        }
+    </style>
+</head>
+<body>
+    <ion-app>
+        <ion-header>
+            <ion-toolbar>
+                <ion-title>SawanCare</ion-title>
+                <ion-buttons slot="end">
+                    <ion-button id="settings-button">
+                        <ion-icon name="settings-outline"></ion-icon>
+                    </ion-button>
+                </ion-buttons>
+            </ion-toolbar>
+        </ion-header>
+
+        <ion-content class="ion-padding">
+            <div id="user-id-display" class="text-sm text-gray-600 mb-4 text-center dark:text-gray-400"></div>
+
+            <div id="dashboard-page" class="page">
+                <ion-card class="p-4 mb-4">
+                    <ion-card-header>
+                        <ion-card-title class="text-lg font-semibold">Ringkasan Sawan</ion-card-title>
+                    </ion-card-header>
+                    <ion-card-content>
+                        <p class="text-gray-700 dark:text-gray-300">Hari Ini: <span id="seizures-today" class="font-bold text-blue-600">0</span> kejadian</p>
+                        <p class="text-gray-700 dark:text-gray-300">Bulan Ini: <span id="seizures-this-month" class="font-bold text-blue-600">0</span> kejadian</p>
+                    </ion-card-content>
+                </ion-card>
+
+                <ion-card class="p-4 mb-4">
+                    <ion-card-header>
+                        <ion-card-title class="text-lg font-semibold">Profil Pesakit</ion-card-title>
+                    </ion-card-header>
+                    <ion-card-content>
+                        <p class="text-gray-700 dark:text-gray-300">Nama: <span id="patient-name-display" class="font-bold">Tiada</span></p>
+                        <p class="text-gray-700 dark:text-gray-300">Umur: <span id="patient-age-display" class="font-bold">Tiada</span></p>
+                        <p class="text-gray-700 dark:text-gray-300">Jantina: <span id="patient-gender-display" class="font-bold">Tiada</span></p>
+                    </ion-card-content>
+                </ion-card>
+
+                <ion-card class="p-4">
+                    <ion-card-header>
+                        <ion-card-title class="text-lg font-semibold">Peringatan Ubat Hari Ini</ion-card-title>
+                    </ion-card-header>
+                    <ion-card-content>
+                        <ion-list id="today-medication-list">
+                            <ion-item lines="none" class="text-gray-600 dark:text-gray-400">Tiada ubat untuk hari ini.</ion-item>
+                        </ion-list>
+                    </ion-card-content>
+                </ion-card>
+
+                <div class="flex flex-col items-center mt-6 space-y-4">
+                    <ion-button expand="block" size="large" class="w-full max-w-xs" id="add-seizure-button">
+                        <ion-icon slot="start" name="add-circle-outline"></ion-icon>
+                        Tambah Catatan Sawan
+                    </ion-button>
+                    <div class="flex justify-center space-x-4 w-full max-w-xs">
+                        <ion-button fill="outline" class="flex-1" id="medication-record-button">
+                            <ion-icon slot="start" name="bandage-outline"></ion-icon>
+                            Rekod Ubat
+                        </ion-button>
+                        <ion-button fill="outline" class="flex-1" id="appointment-button">
+                            <ion-icon slot="start" name="calendar-outline"></ion-icon>
+                            Temujanji
+                        </ion-button>
+                    </div>
+                     <ion-button fill="outline" expand="block" class="w-full max-w-xs" id="reports-button">
+                        <ion-icon slot="start" name="stats-chart-outline"></ion-icon>
+                        Laporan
+                    </ion-button>
+                </div>
+            </div>
+
+            <div id="add-seizure-page" class="page hidden">
+                <ion-card class="p-4">
+                    <ion-card-header>
+                        <ion-card-title class="text-lg font-semibold">Tambah Catatan Sawan</ion-card-title>
+                    </ion-card-header>
+                    <ion-card-content>
+                        <ion-item lines="none">
+                            <ion-label position="stacked">Tarikh & Masa</ion-label>
+                            <ion-datetime id="seizure-datetime" display-format="DD MMMM YYYY HH:mm" picker-format="DD MMM YYYY HH:mm" value=""></ion-datetime>
+                        </ion-item>
+
+                        <ion-item lines="none">
+                            <ion-label position="stacked">Jenis Sawan</ion-label>
+                            <ion-select id="seizure-type" placeholder="Pilih Jenis Sawan">
+                                <ion-select-option value="Sawan kecil">Sawan kecil</ion-select-option>
+                                <ion-select-option value="Tonik-klonik">Tonik-klonik</ion-select-option>
+                                <ion-select-option value="Absen">Absen</ion-select-option>
+                                <ion-select-option value="Fokal">Fokal</ion-select-option>
+                                <ion-select-option value="Mioklonik">Mioklonik</ion-select-option>
+                                <ion-select-option value="Lain-lain">Lain-lain</ion-select-option>
+                            </ion-select>
+                        </ion-item>
+
+                        <ion-item lines="none">
+                            <ion-label position="stacked">Tempoh Sawan (minit)</ion-label>
+                            <ion-input id="seizure-duration" type="number" placeholder="Masukkan tempoh"></ion-input>
+                        </ion-item>
+
+                        <ion-item lines="none">
+                            <ion-label position="stacked">Pemicu (Pilihan)</ion-label>
+                            <ion-input id="seizure-trigger" placeholder="Contoh: Kurang tidur, stres"></ion-input>
+                        </ion-item>
+
+                        <ion-item lines="none">
+                            <ion-label position="stacked">Nota</ion-label>
+                            <ion-textarea id="seizure-notes" placeholder="Apa yang berlaku, apa tindakan"></ion-textarea>
+                        </ion-item>
+
+                        <ion-button expand="block" class="mt-4" id="save-seizure-button">Simpan Catatan</ion-button>
+                        <ion-button expand="block" fill="outline" class="mt-2" id="cancel-add-seizure-button">Batal</ion-button>
+                    </ion-card-content>
+                </ion-card>
+            </div>
+
+            <div id="medication-page" class="page hidden">
+                <ion-card class="p-4 mb-4">
+                    <ion-card-header>
+                        <ion-card-title class="text-lg font-semibold">Tambah Ubat Baru</ion-card-title>
+                    </ion-card-header>
+                    <ion-card-content>
+                        <ion-item lines="none">
+                            <ion-label position="stacked">Nama Ubat</ion-label>
+                            <ion-input id="med-name" placeholder="Contoh: Carbamazepine"></ion-input>
+                        </ion-item>
+                        <ion-item lines="none">
+                            <ion-label position="stacked">Dos</ion-label>
+                            <ion-input id="med-dose" placeholder="Contoh: 200mg"></ion-input>
+                        </ion-item>
+                        <ion-item lines="none">
+                            <ion-label position="stacked">Kekerapan</ion-label>
+                            <ion-select id="med-frequency" multiple="true" placeholder="Pilih kekerapan">
+                                <ion-select-option value="Pagi">Pagi</ion-select-option>
+                                <ion-select-option value="Petang">Petang</ion-select-option>
+                                <ion-select-option value="Malam">Malam</ion-select-option>
+                            </ion-select>
+                        </ion-item>
+                        <ion-item lines="none">
+                            <ion-label>Aktifkan Peringatan Harian</ion-label>
+                            <ion-toggle id="med-reminder-toggle" slot="end"></ion-toggle>
+                        </ion-item>
+                        <ion-button expand="block" class="mt-4" id="add-medication-button">Tambah Ubat</ion-button>
+                    </ion-card-content>
+                </ion-card>
+
+                <ion-card class="p-4">
+                    <ion-card-header>
+                        <ion-card-title class="text-lg font-semibold">Senarai Ubat</ion-card-title>
+                    </ion-card-header>
+                    <ion-card-content>
+                        <ion-list id="medication-list">
+                            <ion-item lines="none" class="text-gray-600 dark:text-gray-400">Tiada rekod ubat.</ion-item>
+                        </ion-list>
+                    </ion-card-content>
+                </ion-card>
+                <ion-button expand="block" fill="outline" class="mt-4" id="back-to-dashboard-medication">Kembali ke Dashboard</ion-button>
+            </div>
+
+            <div id="appointment-page" class="page hidden">
+                <ion-card class="p-4 mb-4">
+                    <ion-card-header>
+                        <ion-card-title class="text-lg font-semibold">Tambah Temujanji Baru</ion-card-title>
+                    </ion-card-header>
+                    <ion-card-content>
+                        <ion-item lines="none">
+                            <ion-label position="stacked">Tarikh & Masa</ion-label>
+                            <ion-datetime id="appointment-datetime" display-format="DD MMMM YYYY HH:mm" picker-format="DD MMM YYYY HH:mm" value=""></ion-datetime>
+                        </ion-item>
+                        <ion-item lines="none">
+                            <ion-label position="stacked">Nama Doktor/Hospital</ion-label>
+                            <ion-input id="appointment-doctor" placeholder="Contoh: Dr. Ali / Hospital Besar"></ion-input>
+                        </ion-item>
+                        <ion-item lines="none">
+                            <ion-label position="stacked">Lokasi (Alamat)</ion-label>
+                            <ion-textarea id="appointment-location" placeholder="Masukkan alamat temujanji"></ion-textarea>
+                        </ion-item>
+                        <ion-button expand="block" class="mt-4" id="add-appointment-button">Tambah Temujanji</ion-button>
+                    </ion-card-content>
+                </ion-card>
+
+                <ion-card class="p-4">
+                    <ion-card-header>
+                        <ion-card-title class="text-lg font-semibold">Senarai Temujanji</ion-card-title>
+                    </ion-card-header>
+                    <ion-card-content>
+                        <ion-list id="appointment-list">
+                            <ion-item lines="none" class="text-gray-600 dark:text-gray-400">Tiada temujanji.</ion-item>
+                        </ion-list>
+                    </ion-card-content>
+                </ion-card>
+                <ion-button expand="block" fill="outline" class="mt-4" id="back-to-dashboard-appointment">Kembali ke Dashboard</ion-button>
+            </div>
+
+            <div id="reports-page" class="page hidden">
+                <ion-card class="p-4 mb-4">
+                    <ion-card-header>
+                        <ion-card-title class="text-lg font-semibold">Statistik Sawan</ion-card-title>
+                    </ion-card-header>
+                    <ion-card-content>
+                        <p class="text-gray-700 dark:text-gray-300">Jumlah kejadian sawan dalam 7 hari terakhir: <span id="seizures-last-7-days" class="font-bold text-blue-600">0</span></p>
+                        <p class="text-gray-700 dark:text-gray-300">Jumlah kejadian sawan dalam 30 hari terakhir: <span id="seizures-last-30-days" class="font-bold text-blue-600">0</span></p>
+                        <div class="mt-4" style="height: 250px;">
+                            <canvas id="seizuresChart"></canvas>
+                        </div>
+                    </ion-card-content>
+                </ion-card>
+
+                <ion-card class="p-4">
+                    <ion-card-header>
+                        <ion-card-title class="text-lg font-semibold">Eksport & Kongsi Laporan</ion-card-title>
+                    </ion-card-header>
+                    <ion-card-content>
+                        <ion-button expand="block" class="mb-2" id="export-pdf-button">
+                            <ion-icon slot="start" name="document-text-outline"></ion-icon>
+                            Eksport ke PDF
+                        </ion-button>
+                        <ion-button expand="block" class="mb-2" id="export-excel-button">
+                            <ion-icon slot="start" name="grid-outline"></ion-icon>
+                            Eksport ke Excel (CSV)
+                        </ion-button>
+                        <ion-button expand="block" fill="outline" id="share-report-button">
+                            <ion-icon slot="start" name="share-social-outline"></ion-icon>
+                            Kongsi Laporan
+                        </ion-button>
+                    </ion-card-content>
+                </ion-card>
+                <ion-button expand="block" fill="outline" class="mt-4" id="back-to-dashboard-reports">Kembali ke Dashboard</ion-button>
+            </div>
+
+            <div id="settings-page" class="page hidden">
+                <ion-card class="p-4 mb-4">
+                    <ion-card-header>
+                        <ion-card-title class="text-lg font-semibold">Tetapan Umum</ion-card-title>
+                    </ion-card-header>
+                    <ion-card-content>
+                        <ion-item lines="none">
+                            <ion-label>Tukar Bahasa</ion-label>
+                            <ion-select id="language-select" value="ms" slot="end">
+                                <ion-select-option value="ms">Bahasa Melayu</ion-select-option>
+                                <ion-select-option value="en">English</ion-select-option>
+                            </ion-select>
+                        </ion-item>
+                        <ion-item lines="none">
+                            <ion-label>Tukar Tema (Gelap/Terang)</ion-label>
+                            <ion-toggle id="theme-toggle" slot="end"></ion-toggle>
+                        </ion-item>
+                    </ion-card-content>
+                </ion-card>
+
+                <ion-card class="p-4 mb-4">
+                    <ion-card-header>
+                        <ion-card-title class="text-lg font-semibold">Urus Profil Pesakit</ion-card-title>
+                    </ion-card-header>
+                    <ion-card-content>
+                        <ion-item lines="none">
+                            <ion-label position="stacked">Nama Penuh</ion-label>
+                            <ion-input id="profile-name" placeholder="Masukkan nama penuh"></ion-input>
+                        </ion-item>
+                        <ion-item lines="none">
+                            <ion-label position="stacked">Umur</ion-label>
+                            <ion-input id="profile-age" type="number" placeholder="Masukkan umur"></ion-input>
+                        </ion-item>
+                        <ion-item lines="none">
+                            <ion-label position="stacked">Jantina</ion-label>
+                            <ion-select id="profile-gender" placeholder="Pilih jantina">
+                                <ion-select-option value="Lelaki">Lelaki</ion-select-option>
+                                <ion-select-option value="Perempuan">Perempuan</ion-select-option>
+                                <ion-select-option value="Lain-lain">Lain-lain</ion-select-option>
+                            </ion-select>
+                        </ion-item>
+                        <ion-button expand="block" class="mt-4" id="save-profile-button">Simpan Profil</ion-button>
+                    </ion-card-content>
+                </ion-card>
+
+                <ion-card class="p-4">
+                    <ion-card-header>
+                        <ion-card-title class="text-lg font-semibold">Bantuan & Sokongan</ion-card-title>
+                    </ion-card-header>
+                    <ion-card-content>
+                        <ion-button expand="block" class="mb-2" id="backup-data-button">
+                            <ion-icon slot="start" name="cloud-upload-outline"></ion-icon>
+                            Sandaran Data ke Google Drive (Opsyenal)
+                        </ion-button>
+                        <ion-button expand="block" fill="outline" id="contact-support-button">
+                            <ion-icon slot="start" name="mail-outline"></ion-icon>
+                            Hubungi Sokongan
+                        </ion-button>
+                    </ion-card-content>
+                </ion-card>
+                <ion-button expand="block" fill="outline" class="mt-4" id="back-to-dashboard-settings">Kembali ke Dashboard</ion-button>
+            </div>
+        </ion-content>
+    </ion-app>
+
+    <div id="message-box" class="message-box"></div>
+
+    <script type="module" src="https://cdn.jsdelivr.net/npm/@ionic/core/dist/ionic/ionic.esm.js"></script>
+    <script nomodule src="https://cdn.jsdelivr.net/npm/@ionic/core/dist/ionic/ionic.js"></script>
+    <script>
+        // Load Ionicons for icons
+        import('https://cdn.jsdelivr.net/npm/ionicons@5.5.2/dist/ionicons/ionicons.js');
+    </script>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, query, where, onSnapshot, doc, deleteDoc, updateDoc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        // Import enableIndexedDbPersistence if you want to enable offline support
+        // import { enableIndexedDbPersistence } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Global variables for Firebase (provided by Canvas environment)
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? initialAuthToken : null; // Changed from __initial_auth_token
+
+        let app, db, auth, userId = 'loading';
+        let isAuthReady = false;
+
+        // --- Firebase Initialization and Authentication ---
+        const initFirebase = async () => {
+            try {
+                app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+
+                // Optional: Enable Firestore offline persistence
+                // This allows the app to work offline after initial data sync.
+                // try {
+                //     await enableIndexedDbPersistence(db);
+                //     console.log("Firestore persistence enabled.");
+                // } catch (err) {
+                //     if (err.code === 'failed-precondition') {
+                //         console.warn("Multiple tabs open, persistence can't be enabled. Or browser doesn't support it.");
+                //     } else if (err.code === 'unimplemented') {
+                //         console.warn("The current browser does not support all of the features required to enable persistence.");
+                //     }
+                // }
+
+                // Sign in with custom token if available, otherwise anonymously
+                if (initialAuthToken) {
+                    await signInWithCustomToken(auth, initialAuthToken);
+                } else {
+                    await signInAnonymously(auth);
+                }
+
+                onAuthStateChanged(auth, (user) => {
+                    if (user) {
+                        userId = user.uid;
+                        document.getElementById('user-id-display').textContent = `ID Pengguna: ${userId}`;
+                        isAuthReady = true;
+                        console.log("Firebase dimulakan dan disahkan. ID Pengguna:", userId);
+                        // Once authenticated, load all data
+                        loadPatientProfile(); // Load patient profile
+                        loadSeizures();
+                        loadMedications();
+                        loadAppointments();
+                        updateDashboardSummary();
+                        updateReportsSummary();
+                    } else {
+                        console.log("Tiada pengguna log masuk.");
+                        userId = crypto.randomUUID(); // Fallback for unauthenticated state
+                        document.getElementById('user-id-display').textContent = `ID Pengguna (Anon): ${userId}`;
+                        isAuthReady = true; // Still ready to operate, but data will be anonymous
+                    }
+                });
+            } catch (error) {
+                console.error("Ralat semasa memulakan Firebase atau log masuk:", error);
+                // Fallback to anonymous user if auth fails
+                userId = crypto.randomUUID();
+                document.getElementById('user-id-display').textContent = `ID Pengguna (Ralat/Anon): ${userId}`;
+                isAuthReady = true;
+                // Attempt to load data even if auth failed, but it might be empty
+                loadPatientProfile();
+                loadSeizures();
+                loadMedications();
+                loadAppointments();
+                updateDashboardSummary();
+                updateReportsSummary();
+            }
+        };
+
+        // --- Global State and Utility Functions ---
+        let currentLanguage = 'ms'; // Default language
+        let seizuresData = [];
+        let medicationsData = [];
+        let appointmentsData = [];
+        let patientProfile = {}; // Store patient profile data
+        let seizureChartInstance = null; // To hold the Chart.js instance
+
+        // Function to show a specific page and hide others
+        const showPage = (pageId) => {
+            document.querySelectorAll('.page').forEach(page => {
+                page.classList.add('hidden');
+            });
+            document.getElementById(pageId).classList.remove('hidden');
+
+            // Special handling for reports page to re-render chart
+            if (pageId === 'reports-page') {
+                renderSeizureChart();
+            } else if (pageId === 'settings-page') {
+                // Populate profile form when settings page is shown
+                document.getElementById('profile-name').value = patientProfile.name || '';
+                document.getElementById('profile-age').value = patientProfile.age || '';
+                const genderSelect = document.getElementById('profile-gender');
+                if (patientProfile.gender) {
+                    genderSelect.value = patientProfile.gender;
+                    genderSelect.componentOnReady().then(() => genderSelect.value = patientProfile.gender);
+                } else {
+                    genderSelect.value = ''; // Reset if no gender
+                    genderSelect.componentOnReady().then(() => genderSelect.value = '');
+                }
+            }
+        };
+
+        // Function to display a custom message (instead of alert/confirm)
+        const showMessage = (message, type = 'info') => {
+            const messageBox = document.getElementById('message-box');
+            messageBox.textContent = message;
+            messageBox.className = `message-box show ${type}`; // Add type class for styling
+            setTimeout(() => {
+                messageBox.classList.remove('show');
+            }, 2000); // Hide after 2 seconds
+        };
+
+        // --- Patient Profile Functions ---
+        const savePatientProfile = async () => {
+            if (!isAuthReady) {
+                showMessage("Aplikasi sedang memuatkan data. Sila cuba sebentar lagi.", "error");
+                return;
+            }
+
+            const nameInput = document.getElementById('profile-name');
+            const ageInput = document.getElementById('profile-age');
+            const genderSelect = document.getElementById('profile-gender');
+
+            const name = nameInput.value.trim();
+            const age = parseInt(ageInput.value, 10);
+            const gender = genderSelect.value;
+
+            if (!name || isNaN(age) || age <= 0 || !gender) {
+                showMessage("Sila isi Nama, Umur, dan Jantina yang sah untuk profil.", "error");
+                return;
+            }
+
+            try {
+                // Use setDoc instead of addDoc for a single patient profile per user
+                const profileDocRef = doc(db, `artifacts/${appId}/users/${userId}/profile`, 'patient');
+                await setDoc(profileDocRef, {
+                    name: name,
+                    age: age,
+                    gender: gender,
+                    updatedAt: new Date().toISOString()
+                });
+                showMessage("Profil pesakit berjaya disimpan!", "success");
+                loadPatientProfile(); // Reload profile display
+                showPage('dashboard-page'); // Go back to dashboard
+            } catch (e) {
+                console.error("Ralat menyimpan profil pesakit:", e);
+                showMessage("Gagal menyimpan profil pesakit. Sila cuba lagi.", "error");
+            }
+        };
+
+        const loadPatientProfile = () => {
+            if (!isAuthReady) return;
+
+            const profileDocRef = doc(db, `artifacts/${appId}/users/${userId}/profile`, 'patient');
+            onSnapshot(profileDocRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    patientProfile = docSnap.data();
+                    document.getElementById('patient-name-display').textContent = patientProfile.name || 'Tiada';
+                    document.getElementById('patient-age-display').textContent = patientProfile.age ? `${patientProfile.age} tahun` : 'Tiada';
+                    document.getElementById('patient-gender-display').textContent = patientProfile.gender || 'Tiada';
+
+                    // Also update the settings form fields if on that page
+                    if (!document.getElementById('settings-page').classList.contains('hidden')) {
+                        document.getElementById('profile-name').value = patientProfile.name || '';
+                        document.getElementById('profile-age').value = patientProfile.age || '';
+                        const genderSelect = document.getElementById('profile-gender');
+                         if (patientProfile.gender) {
+                            genderSelect.value = patientProfile.gender;
+                            genderSelect.componentOnReady().then(() => genderSelect.value = patientProfile.gender);
+                        } else {
+                            genderSelect.value = '';
+                            genderSelect.componentOnReady().then(() => genderSelect.value = '');
+                        }
+                    }
+
+                } else {
+                    console.log("Tiada profil pesakit ditemui.");
+                    patientProfile = {}; // Reset profile
+                    document.getElementById('patient-name-display').textContent = 'Tiada';
+                    document.getElementById('patient-age-display').textContent = 'Tiada';
+                    document.getElementById('patient-gender-display').textContent = 'Tiada';
+                     // Clear settings form fields if profile not found
+                    if (!document.getElementById('settings-page').classList.contains('hidden')) {
+                        document.getElementById('profile-name').value = '';
+                        document.getElementById('profile-age').value = '';
+                        const genderSelect = document.getElementById('profile-gender');
+                        genderSelect.value = '';
+                        genderSelect.componentOnReady().then(() => genderSelect.value = '');
+                    }
+                }
+            }, (error) => {
+                console.error("Ralat memuatkan profil pesakit:", error);
+                showMessage("Gagal memuatkan profil pesakit.", "error");
+            });
+        };
+
+        // --- Seizure Tracking Functions ---
+        const saveSeizure = async () => {
+            if (!isAuthReady) {
+                showMessage("Aplikasi sedang memuatkan data. Sila cuba sebentar lagi.", "error");
+                return;
+            }
+
+            const datetimeInput = document.getElementById('seizure-datetime');
+            const typeInput = document.getElementById('seizure-type');
+            const durationInput = document.getElementById('seizure-duration');
+            const triggerInput = document.getElementById('seizure-trigger');
+            const notesInput = document.getElementById('seizure-notes');
+
+            const date = datetimeInput.value;
+            const type = typeInput.value;
+            const duration = parseFloat(durationInput.value);
+            const trigger = triggerInput.value.trim();
+            const notes = notesInput.value.trim();
+
+            // Basic validation
+            if (!date || !type || isNaN(duration) || duration <= 0) {
+                showMessage("Sila isi semua medan yang diperlukan (Tarikh & Masa, Jenis Sawan, Tempoh Sawan).", "error");
+                return;
+            }
+
+            try {
+                const seizureRef = collection(db, `artifacts/${appId}/users/${userId}/seizures`);
+                await addDoc(seizureRef, {
+                    date: date,
+                    type: type,
+                    duration: duration,
+                    trigger: trigger,
+                    notes: notes,
+                    timestamp: new Date().toISOString()
+                });
+                showMessage("Catatan sawan berjaya disimpan!", "success");
+                // Clear form
+                datetimeInput.value = new Date().toISOString();
+                typeInput.value = '';
+                durationInput.value = '';
+                triggerInput.value = '';
+                notesInput.value = '';
+                showPage('dashboard-page'); // Go back to dashboard
+            } catch (e) {
+                console.error("Ralat menambah dokumen:", e);
+                showMessage("Gagal menyimpan catatan sawan. Sila cuba lagi.", "error");
+            }
+        };
+
+        const loadSeizures = () => {
+            if (!isAuthReady) return;
+
+            const seizuresColRef = collection(db, `artifacts/${appId}/users/${userId}/seizures`);
+            const q = query(seizuresColRef);
+
+            onSnapshot(q, (snapshot) => {
+                seizuresData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                seizuresData.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)); // Sort by latest added
+                updateDashboardSummary();
+                updateReportsSummary();
+                renderSeizureChart();
+            }, (error) => {
+                console.error("Ralat memuatkan sawan:", error);
+                showMessage("Gagal memuatkan data sawan.", "error");
+            });
+        };
+
+        const updateDashboardSummary = () => {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            const thisMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+
+            let seizuresTodayCount = 0;
+            let seizuresThisMonthCount = 0;
+
+            seizuresData.forEach(seizure => {
+                const seizureDate = new Date(seizure.date);
+                if (seizureDate >= today) {
+                    seizuresTodayCount++;
+                }
+                if (seizureDate >= thisMonth) {
+                    seizuresThisMonthCount++;
+                }
+            });
+
+            document.getElementById('seizures-today').textContent = seizuresTodayCount;
+            document.getElementById('seizures-this-month').textContent = seizuresThisMonthCount;
+        };
+
+        // --- Medication Functions ---
+        const addMedication = async () => {
+            if (!isAuthReady) {
+                showMessage("Aplikasi sedang memuatkan data. Sila cuba sebentar lagi.", "error");
+                return;
+            }
+
+            const nameInput = document.getElementById('med-name');
+            const doseInput = document.getElementById('med-dose');
+            const frequencySelect = document.getElementById('med-frequency');
+            const reminderToggle = document.getElementById('med-reminder-toggle');
+
+            const name = nameInput.value.trim();
+            const dose = doseInput.value.trim();
+            const frequency = frequencySelect.value;
+            const reminderEnabled = reminderToggle.checked;
+
+            if (!name || !dose || frequency.length === 0) {
+                showMessage("Sila isi semua medan ubat yang diperlukan.", "error");
+                return;
+            }
+
+            try {
+                const medRef = collection(db, `artifacts/${appId}/users/${userId}/medications`);
+                await addDoc(medRef, {
+                    name: name,
+                    dose: dose,
+                    frequency: frequency,
+                    reminderEnabled: reminderEnabled,
+                    timestamp: new Date().toISOString()
+                });
+                showMessage("Ubat berjaya ditambah!", "success");
+                // Clear form
+                nameInput.value = '';
+                doseInput.value = '';
+                frequencySelect.value = [];
+                frequencySelect.componentOnReady().then(() => frequencySelect.value = []); // Ensure Ionic updates visual
+                reminderToggle.checked = false;
+            } catch (e) {
+                console.error("Ralat menambah ubat:", e);
+                showMessage("Gagal menambah ubat. Sila cuba lagi.", "error");
+            }
+        };
+
+        const loadMedications = () => {
+            if (!isAuthReady) return;
+
+            const medicationsColRef = collection(db, `artifacts/${appId}/users/${userId}/medications`);
+            const q = query(medicationsColRef);
+
+            onSnapshot(q, (snapshot) => {
+                medicationsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                medicationsData.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)); // Sort by latest added
+                renderMedicationsList();
+                renderTodayMedications();
+                // Schedule actual local notifications if in a hybrid app context
+                medicationsData.forEach(med => {
+                    if (med.reminderEnabled && med.frequency && Array.isArray(med.frequency)) {
+                        const now = new Date();
+                        med.frequency.forEach(timeOfDay => {
+                            let reminderTime = new Date(now);
+                            if (timeOfDay === 'Pagi') {
+                                reminderTime.setHours(9, 0, 0, 0); // 9 AM
+                            } else if (timeOfDay === 'Petang') {
+                                reminderTime.setHours(14, 0, 0, 0); // 2 PM
+                            } else if (timeOfDay === 'Malam') {
+                                reminderTime.setHours(20, 0, 0, 0); // 8 PM
+                            }
+
+                            // Only schedule if the time is in the future today or tomorrow
+                            if (reminderTime > now) {
+                                // For a real app, integrate Capacitor Local Notifications plugin here
+                                // For this web demo, it's a console log and UI message.
+                                // scheduleLocalNotification(`Peringatan Ubat: ${med.name}`, `Masa untuk mengambil ${med.dose} ${med.name}.`, reminderTime);
+                            } else { // Schedule for tomorrow if time has passed today
+                                const tomorrow = new Date(now);
+                                tomorrow.setDate(now.getDate() + 1);
+                                if (timeOfDay === 'Pagi') {
+                                    tomorrow.setHours(9, 0, 0, 0);
+                                } else if (timeOfDay === 'Petang') {
+                                    tomorrow.setHours(14, 0, 0, 0);
+                                } else if (timeOfDay === 'Malam') {
+                                    tomorrow.setHours(20, 0, 0, 0);
+                                }
+                                // scheduleLocalNotification(`Peringatan Ubat: ${med.name}`, `Masa untuk mengambil ${med.dose} ${med.name}.`, tomorrow);
+                            }
+                        });
+                    }
+                });
+            }, (error) => {
+                console.error("Ralat memuatkan ubat-ubatan:", error);
+                showMessage("Gagal memuatkan data ubat.", "error");
+            });
+        };
+
+        const renderMedicationsList = () => {
+            const listElement = document.getElementById('medication-list');
+            listElement.innerHTML = ''; // Clear existing list
+
+            if (medicationsData.length === 0) {
+                listElement.innerHTML = '<ion-item lines="none" class="text-gray-600 dark:text-gray-400">Tiada rekod ubat.</ion-item>';
+                return;
+            }
+
+            medicationsData.forEach(med => {
+                const item = document.createElement('ion-item-sliding');
+                item.innerHTML = `
+                    <ion-item>
+                        <ion-label>
+                            <h2 class="font-semibold">${med.name}</h2>
+                            <p class="text-sm text-gray-600 dark:text-gray-400">${med.dose} - ${med.frequency.join(', ')}</p>
+                        </ion-label>
+                    </ion-item>
+                    <ion-item-options slot="end">
+                        <ion-item-option color="danger" class="delete-med-button" data-id="${med.id}">
+                            <ion-icon slot="icon-only" name="trash"></ion-icon>
+                        </ion-item-option>
+                    </ion-item-options>
+                `;
+                listElement.appendChild(item);
+            });
+
+            // Add event listeners for delete buttons
+            listElement.querySelectorAll('.delete-med-button').forEach(button => {
+                button.addEventListener('click', async (e) => {
+                    const medId = e.currentTarget.dataset.id;
+                    const confirmDelete = await showConfirm("Adakah anda pasti ingin memadam ubat ini?");
+                    if (confirmDelete) {
+                        deleteMedication(medId);
+                    } else {
+                         // Close the sliding item if delete is cancelled
+                        const slidingItem = e.target.closest('ion-item-sliding');
+                        if (slidingItem) {
+                            slidingItem.closeOpened();
+                        }
+                    }
+                });
+            });
+        };
+
+        const deleteMedication = async (medId) => {
+            if (!isAuthReady) return;
+            try {
+                await deleteDoc(doc(db, `artifacts/${appId}/users/${userId}/medications`, medId));
+                showMessage("Ubat berjaya dipadam!", "success");
+            } catch (e) {
+                console.error("Ralat memadam ubat:", e);
+                showMessage("Gagal memadam ubat. Sila cuba lagi.", "error");
+            }
+        };
+
+        const renderTodayMedications = () => {
+            const listElement = document.getElementById('today-medication-list');
+            listElement.innerHTML = '';
+
+            const today = new Date();
+            const currentHour = today.getHours();
+            let medicationsForTodayFound = false;
+
+            medicationsData.forEach(med => {
+                if (med.reminderEnabled && med.frequency && Array.isArray(med.frequency)) {
+                    let takenForToday = false; // Placeholder for future "mark as taken" functionality
+                    // In a real app, you'd store taken status per day/per dose.
+
+                    med.frequency.forEach(timeOfDay => {
+                        let shouldShow = false;
+                        if (timeOfDay === 'Pagi' && currentHour < 12) shouldShow = true;
+                        if (timeOfDay === 'Petang' && currentHour >= 12 && currentHour < 18) shouldShow = true;
+                        if (timeOfDay === 'Malam' && currentHour >= 18) shouldShow = true;
+
+                        if (shouldShow && !takenForToday) {
+                            const item = document.createElement('ion-item');
+                            item.innerHTML = `
+                                <ion-label>
+                                    <h2 class="font-semibold">${med.name}</h2>
+                                    <p class="text-sm text-gray-600 dark:text-gray-400">${med.dose} (${timeOfDay})</p>
+                                </ion-label>
+                                <ion-button slot="end" fill="clear" color="primary">
+                                    <ion-icon name="checkmark-circle-outline"></ion-icon>
+                                    Ambil
+                                </ion-button>
+                            `;
+                            listElement.appendChild(item);
+                            medicationsForTodayFound = true;
+                        }
+                    });
+                }
+            });
+
+            if (!medicationsForTodayFound) {
+                listElement.innerHTML = '<ion-item lines="none" class="text-gray-600 dark:text-gray-400">Tiada ubat untuk hari ini.</ion-item>';
+            }
+        };
+
+
+        // Function to show a confirmation dialog (using Ionic AlertController)
+        const showConfirm = async (message) => {
+            const alertController = document.querySelector('ion-alert-controller');
+            await alertController.componentOnReady();
+            const alert = await alertController.create({
+                header: 'Pengesahan',
+                message: message,
+                buttons: [
+                    {
+                        text: 'Batal',
+                        role: 'cancel',
+                        cssClass: 'secondary',
+                        handler: () => {
+                            console.log('Confirm Cancel');
+                        }
+                    }, {
+                        text: 'Padam',
+                        handler: () => {
+                            return true; // Indicate confirmation
+                        }
+                    }
+                ]
+            });
+
+            await alert.present();
+            const { role } = await alert.onDidDismiss();
+            return role === 'backdrop' || role === 'cancel' ? false : true; // Return true if confirmed, false otherwise
+        };
+
+
+        // --- Appointment Functions ---
+        const addAppointment = async () => {
+            if (!isAuthReady) {
+                showMessage("Aplikasi sedang memuatkan data. Sila cuba sebentar lagi.", "error");
+                return;
+            }
+
+            const datetimeInput = document.getElementById('appointment-datetime');
+            const doctorInput = document.getElementById('appointment-doctor');
+            const locationInput = document.getElementById('appointment-location');
+
+            const date = datetimeInput.value;
+            const doctor = doctorInput.value.trim();
+            const location = locationInput.value.trim();
+
+            if (!date || !doctor) {
+                showMessage("Sila isi Tarikh & Masa dan Nama Doktor/Hospital untuk temujanji.", "error");
+                return;
+            }
+
+            try {
+                const apptRef = collection(db, `artifacts/${appId}/users/${userId}/appointments`);
+                await addDoc(apptRef, {
+                    date: date,
+                    doctor: doctor,
+                    location: location,
+                    timestamp: new Date().toISOString()
+                });
+                showMessage("Temujanji berjaya ditambah!", "success");
+                // Clear form
+                datetimeInput.value = new Date().toISOString();
+                doctorInput.value = '';
+                locationInput.value = '';
+                // Schedule notifications (simulated - replace with Capacitor Local Notifications in a real app)
+                const apptDate = new Date(date);
+                if (apptDate > new Date()) { // Only schedule if appointment is in the future
+                    const oneDayBefore = new Date(apptDate.getTime() - (24 * 60 * 60 * 1000));
+                    const oneHourBefore = new Date(apptDate.getTime() - (60 * 60 * 1000));
+
+                    if (oneDayBefore > new Date()) {
+                        scheduleLocalNotification("Peringatan Temujanji", `Temujanji anda dengan ${doctor} pada ${apptDate.toLocaleDateString('ms-MY', { day: 'numeric', month: 'long' })} esok.`, oneDayBefore);
+                    }
+                    if (oneHourBefore > new Date()) {
+                        scheduleLocalNotification("Peringatan Temujanji", `Temujanji anda dengan ${doctor} dalam 1 jam lagi.`, oneHourBefore);
+                    }
+                }
+
+            } catch (e) {
+                console.error("Ralat menambah temujanji:", e);
+                showMessage("Gagal menambah temujanji. Sila cuba lagi.", "error");
+            }
+        };
+
+        const loadAppointments = () => {
+            if (!isAuthReady) return;
+
+            const appointmentsColRef = collection(db, `artifacts/${appId}/users/${userId}/appointments`);
+            const q = query(appointmentsColRef);
+
+            onSnapshot(q, (snapshot) => {
+                appointmentsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                appointmentsData.sort((a, b) => new Date(a.date) - new Date(b.date)); // Sort by upcoming date
+                renderAppointmentsList();
+            }, (error) => {
+                console.error("Ralat memuatkan temujanji:", error);
+                showMessage("Gagal memuatkan data temujanji.", "error");
+            });
+        };
+
+        const renderAppointmentsList = () => {
+            const listElement = document.getElementById('appointment-list');
+            listElement.innerHTML = ''; // Clear existing list
+
+            if (appointmentsData.length === 0) {
+                listElement.innerHTML = '<ion-item lines="none" class="text-gray-600 dark:text-gray-400">Tiada temujanji.</ion-item>';
+                return;
+            }
+
+            appointmentsData.forEach(appt => {
+                const apptDate = new Date(appt.date);
+                const formattedDate = apptDate.toLocaleDateString(currentLanguage === 'ms' ? 'ms-MY' : 'en-US', {
+                    year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
+                });
+
+                const item = document.createElement('ion-item-sliding');
+                item.innerHTML = `
+                    <ion-item>
+                        <ion-label>
+                            <h2 class="font-semibold">${appt.doctor}</h2>
+                            <p class="text-sm text-gray-600 dark:text-gray-400">${formattedDate}</p>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">${appt.location || 'Tiada lokasi'}</p>
+                        </ion-label>
+                    </ion-item>
+                    <ion-item-options slot="end">
+                        <ion-item-option color="danger" class="delete-appt-button" data-id="${appt.id}">
+                            <ion-icon slot="icon-only" name="trash"></ion-icon>
+                        </ion-item-option>
+                    </ion-item-options>
+                `;
+                listElement.appendChild(item);
+            });
+
+            // Add event listeners for delete buttons
+            listElement.querySelectorAll('.delete-appt-button').forEach(button => {
+                button.addEventListener('click', async (e) => {
+                    const apptId = e.currentTarget.dataset.id;
+                    const confirmDelete = await showConfirm("Adakah anda pasti ingin memadam temujanji ini?");
+                    if (confirmDelete) {
+                        deleteAppointment(apptId);
+                    } else {
+                        const slidingItem = e.target.closest('ion-item-sliding');
+                        if (slidingItem) {
+                            slidingItem.closeOpened();
+                        }
+                    }
+                });
+            });
+        };
+
+        const deleteAppointment = async (apptId) => {
+            if (!isAuthReady) return;
+            try {
+                await deleteDoc(doc(db, `artifacts/${appId}/users/${userId}/appointments`, apptId));
+                showMessage("Temujanji berjaya dipadam!", "success");
+            } catch (e) {
+                console.error("Ralat memadam temujanji:", e);
+                showMessage("Gagal memadam temujanji. Sila cuba lagi.", "error");
+            }
+        };
+
+        // --- Reports Functions ---
+        const updateReportsSummary = () => {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            const sevenDaysAgo = new Date(today);
+            sevenDaysAgo.setDate(today.getDate() - 7);
+
+            const thirtyDaysAgo = new Date(today);
+            thirtyDaysAgo.setDate(today.getDate() - 30);
+
+            let seizuresLast7Days = 0;
+            let seizuresLast30Days = 0;
+
+            seizuresData.forEach(seizure => {
+                const seizureDate = new Date(seizure.date);
+                if (seizureDate >= sevenDaysAgo) {
+                    seizuresLast7Days++;
+                }
+                if (seizureDate >= thirtyDaysAgo) {
+                    seizuresLast30Days++;
+                }
+            });
+
+            document.getElementById('seizures-last-7-days').textContent = seizuresLast7Days;
+            document.getElementById('seizures-last-30-days').textContent = seizuresLast30Days;
+
+            renderSeizureChart();
+        };
+
+        const renderSeizureChart = () => {
+            const canvas = document.getElementById('seizuresChart');
+            if (!canvas) return; // Exit if canvas element is not found
+
+            const ctx = canvas.getContext('2d');
+
+            // Destroy existing chart if it exists to prevent multiple charts on re-render
+            if (seizureChartInstance) {
+                seizureChartInstance.destroy();
+            }
+
+            // Aggregate seizure data by type for the chart
+            const seizureTypeCounts = {};
+            seizuresData.forEach(seizure => {
+                seizureTypeCounts[seizure.type] = (seizureTypeCounts[seizure.type] || 0) + 1;
+            });
+
+            const labels = Object.keys(seizureTypeCounts);
+            const data = Object.values(seizureTypeCounts);
+
+            seizureChartInstance = new Chart(ctx, {
+                type: 'bar', // Bar chart for types
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Jumlah Kejadian Sawan',
+                        data: data,
+                        backgroundColor: [
+                            'rgba(54, 162, 235, 0.6)', // Blue
+                            'rgba(255, 99, 132, 0.6)', // Red
+                            'rgba(75, 192, 192, 0.6)', // Green
+                            'rgba(255, 206, 86, 0.6)', // Yellow
+                            'rgba(153, 102, 255, 0.6)', // Purple
+                            'rgba(255, 159, 64, 0.6)'  // Orange
+                        ],
+                        borderColor: [
+                            'rgba(54, 162, 235, 1)',
+                            'rgba(255, 99, 132, 1)',
+                            'rgba(75, 192, 192, 1)',
+                            'rgba(255, 206, 86, 1)',
+                            'rgba(153, 102, 255, 1)',
+                            'rgba(255, 159, 64, 1)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                precision: 0 // Ensure integer ticks for count
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false // Hide legend if only one dataset
+                        }
+                    }
+                }
+            });
+        };
+
+        const exportToPdf = () => {
+            if (seizuresData.length === 0) {
+                showMessage("Tiada data sawan untuk dieksport.", "info");
+                return;
+            }
+
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+
+            doc.setFontSize(18);
+            doc.text("Laporan Sawan SawanCare", 14, 22);
+
+            doc.setFontSize(12);
+            let y = 30;
+
+            doc.text("Maklumat Pesakit:", 14, y + 10);
+            doc.text(`  Nama: ${patientProfile.name || 'Tiada'}`, 20, y + 17);
+            doc.text(`  Umur: ${patientProfile.age ? patientProfile.age + ' tahun' : 'Tiada'}`, 20, y + 24);
+            doc.text(`  Jantina: ${patientProfile.gender || 'Tiada'}`, 20, y + 31);
+            y += 45; // Move Y down after patient info
+
+            doc.text("Rekod Sawan:", 14, y + 10);
+            y += 10;
+
+            seizuresData.forEach((seizure, index) => {
+                if (y > 270) { // Check if new page is needed, adjusted for new content
+                    doc.addPage();
+                    y = 20; // Reset y for new page
+                    doc.setFontSize(12); // Ensure font size is reset
+                    doc.text("Rekod Sawan (sambungan):", 14, y + 10);
+                    y += 10;
+                }
+                const formattedDate = new Date(seizure.date).toLocaleDateString(currentLanguage === 'ms' ? 'ms-MY' : 'en-US', {
+                    year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
+                });
+                doc.text(`Kejadian ${index + 1}:`, 14, y + 10);
+                doc.text(`  Tarikh & Masa: ${formattedDate}`, 20, y + 17);
+                doc.text(`  Jenis Sawan: ${seizure.type}`, 20, y + 24);
+                doc.text(`  Tempoh: ${seizure.duration} minit`, 20, y + 31);
+                if (seizure.trigger && seizure.trigger.length > 0) {
+                    doc.text(`  Pemicu: ${seizure.trigger}`, 20, y + 38);
+                }
+                // Handle long notes by splitting lines
+                const notesLines = doc.splitTextToSize(`Nota: ${seizure.notes || 'Tiada'}`, 180); // 180 is approximate max width
+                doc.text(notesLines, 20, y + 45);
+                y += (notesLines.length * 7) + 50; // Increment y based on number of lines in notes and general spacing
+            });
+
+            doc.save("SawanCare_Laporan_Sawan.pdf");
+            showMessage("Laporan sawan dieksport ke PDF.", "success");
+        };
+
+        const exportToCsv = () => {
+            // Simple CSV export for seizures data
+            if (seizuresData.length === 0) {
+                showMessage("Tiada data sawan untuk dieksport.", "info");
+                return;
+            }
+
+            let csvContent = "data:text/csv;charset=utf-8,";
+            csvContent += "Tarikh & Masa,Jenis Sawan,Tempoh (minit),Pemicu,Nota\n";
+
+            seizuresData.forEach(seizure => {
+                const row = [
+                    `"${seizure.date}"`,
+                    `"${seizure.type}"`,
+                    seizure.duration,
+                    `"${seizure.trigger ? seizure.trigger.replace(/"/g, '""') : ''}"`,
+                    `"${seizure.notes ? seizure.notes.replace(/"/g, '""') : ''}"`
+                ].join(',');
+                csvContent += row + "\n";
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "SawanCare_Laporan_Sawan.csv");
+            document.body.appendChild(link); // Required for Firefox
+            link.click();
+            document.body.removeChild(link);
+            showMessage("Laporan sawan dieksport ke CSV.", "success");
+        };
+
+        const shareReport = () => {
+            // This would typically use Capacitor/Cordova Social Sharing plugin
+            showMessage("Fungsi kongsi laporan akan datang (memerlukan plugin asli seperti Capacitor Social Sharing).", "info");
+        };
+
+        // --- Settings Functions ---
+        const toggleLanguage = (event) => {
+            currentLanguage = event.detail.value;
+            // In a real app, you would update all text elements based on the new language
+            showMessage(`Bahasa ditukar kepada: ${currentLanguage === 'ms' ? 'Bahasa Melayu' : 'English'}.`, "info");
+            // For this example, we'll just update the message.
+            // A full i18n implementation would involve a dictionary and updating innerHTML/textContent
+            // of many elements based on keys.
+        };
+
+        const toggleTheme = (event) => {
+            if (event.detail.checked) {
+                document.documentElement.classList.add('dark');
+                showMessage("Tema gelap diaktifkan.", "info");
+            } else {
+                document.documentElement.classList.remove('dark');
+                showMessage("Tema terang diaktifkan.", "info");
+            }
+        };
+
+        const backupData = () => {
+            // This is a complex feature requiring Google Drive API integration (OAuth2, file management)
+            showMessage("Fungsi sandaran data ke Google Drive akan datang (memerlukan integrasi API dan backend).", "info");
+        };
+
+        const contactSupport = () => {
+            window.location.href = "mailto:support@sawancare.com?subject=Sokongan Aplikasi SawanCare";
+            showMessage("Membuka aplikasi e-mel untuk sokongan.", "info");
+        };
+
+        // --- Event Listeners ---
+        document.addEventListener('DOMContentLoaded', async () => {
+            await initFirebase(); // Initialize Firebase when DOM is ready
+
+            // Set default date for datetime pickers
+            const now = new Date().toISOString();
+            document.getElementById('seizure-datetime').value = now;
+            document.getElementById('appointment-datetime').value = now;
+
+            // Navigation Buttons
+            document.getElementById('add-seizure-button').addEventListener('click', () => showPage('add-seizure-page'));
+            document.getElementById('cancel-add-seizure-button').addEventListener('click', () => showPage('dashboard-page'));
+            document.getElementById('medication-record-button').addEventListener('click', () => showPage('medication-page'));
+            document.getElementById('appointment-button').addEventListener('click', () => showPage('appointment-page'));
+            document.getElementById('reports-button').addEventListener('click', () => showPage('reports-page'));
+            document.getElementById('settings-button').addEventListener('click', () => showPage('settings-page'));
+
+            document.getElementById('back-to-dashboard-medication').addEventListener('click', () => showPage('dashboard-page'));
+            document.getElementById('back-to-dashboard-appointment').addEventListener('click', () => showPage('dashboard-page'));
+            document.getElementById('back-to-dashboard-reports').addEventListener('click', () => showPage('dashboard-page'));
+            document.getElementById('back-to-dashboard-settings').addEventListener('click', () => showPage('dashboard-page'));
+
+            // Save Buttons
+            document.getElementById('save-seizure-button').addEventListener('click', saveSeizure);
+            document.getElementById('add-medication-button').addEventListener('click', addMedication);
+            document.getElementById('add-appointment-button').addEventListener('click', addAppointment);
+            document.getElementById('save-profile-button').addEventListener('click', savePatientProfile); // Save profile button
+
+            // Reports Buttons
+            document.getElementById('export-pdf-button').addEventListener('click', exportToPdf);
+            document.getElementById('export-excel-button').addEventListener('click', exportToCsv);
+            document.getElementById('share-report-button').addEventListener('click', shareReport);
+
+            // Settings Controls
+            document.getElementById('language-select').addEventListener('ionChange', toggleLanguage);
+            document.getElementById('theme-toggle').addEventListener('ionChange', toggleTheme);
+            document.getElementById('backup-data-button').addEventListener('click', backupData);
+            document.getElementById('contact-support-button').addEventListener('click', contactSupport);
+
+            // Initial theme check (e.g., from user preference or system)
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)');
+            const updateTheme = (mediaQuery) => {
+                document.getElementById('theme-toggle').checked = mediaQuery.matches;
+                if (mediaQuery.matches) {
+                    document.documentElement.classList.add('dark');
+                } else {
+                    document.documentElement.classList.remove('dark');
+                }
+            };
+            updateTheme(prefersDark); // Set initial theme
+            prefersDark.addEventListener('change', updateTheme); // Listen for system theme changes
+
+            // Initialize Ionic Alert Controller for confirmations
+            const appInstance = document.querySelector('ion-app');
+            if (appInstance) {
+                const alertController = document.createElement('ion-alert-controller');
+                appInstance.appendChild(alertController);
+            }
+        });
+    </script>
+</body>
+</html>
